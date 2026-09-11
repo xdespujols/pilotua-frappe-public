@@ -25,14 +25,23 @@ jobs:
       - name: Pull source image
         run: docker pull ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }}
 
-      - name: Tag for public package
-        run: docker tag ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }} ${{ env.TARGET_IMAGE }}:${{ inputs.tag }}
-
-      - name: Push to public package
-        run: docker push ${{ env.TARGET_IMAGE }}:${{ inputs.tag }}
-
-      - name: Also mirror latest
-        if: inputs.tag == 'preprod'
+      - name: Create Dockerfile
         run: |
-          docker tag ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }} ${{ env.TARGET_IMAGE }}:latest
-          docker push ${{ env.TARGET_IMAGE }}:latest
+          cat > /tmp/Dockerfile <<'EOF'
+          FROM ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }}
+          LABEL org.opencontainers.image.source="https://github.com/xdespujols/pilotua-frappe-public"
+          LABEL org.opencontainers.image.title="pilotua-frappe-public"
+          EOF
+
+      - name: Build and push public image
+        uses: docker/build-push-action@v6
+        with:
+          context: /tmp
+          file: /tmp/Dockerfile
+          push: true
+          tags: |
+            ${{ env.TARGET_IMAGE }}:${{ inputs.tag }}
+            ${{ env.TARGET_IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/xdespujols/pilotua-frappe-public
+            org.opencontainers.image.title=pilotua-frappe-public
