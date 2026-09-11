@@ -1,0 +1,38 @@
+name: Mirror image to public package
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to mirror (default: preprod)"
+        required: false
+        default: "preprod"
+
+env:
+  SOURCE_IMAGE: ghcr.io/xdespujols/pilotua-frappe
+  TARGET_IMAGE: ghcr.io/xdespujols/pilotua-frappe-public
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Authenticate to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull source image
+        run: docker pull ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }}
+
+      - name: Tag for public package
+        run: docker tag ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }} ${{ env.TARGET_IMAGE }}:${{ inputs.tag }}
+
+      - name: Push to public package
+        run: docker push ${{ env.TARGET_IMAGE }}:${{ inputs.tag }}
+
+      - name: Also mirror latest
+        if: inputs.tag == 'preprod'
+        run: |
+          docker tag ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }} ${{ env.TARGET_IMAGE }}:latest
+          docker push ${{ env.TARGET_IMAGE }}:latest
