@@ -19,8 +19,8 @@ jobs:
       packages: write
       contents: read
     steps:
-      - name: Authenticate to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Login to GHCR with PAT
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u xdespujols --password-stdin
 
       - name: Pull source image
         run: docker pull ${{ env.SOURCE_IMAGE }}:${{ inputs.tag }}
